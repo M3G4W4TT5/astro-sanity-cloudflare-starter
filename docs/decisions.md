@@ -11,5 +11,5 @@ Recorded 28 September 2026. These are template defaults, not client approvals.
 | Git-connected Cloudflare Pages and generated `pages.dev` review hostname | Static builds and isolated review before a client domain change. Publish webhook requests another build; live verification remains required. |
 | Pages Function + Turnstile + provider interface | Server validation and replaceable sending; contact form stays disabled pending hosted inbox proof. |
 | Resend Free default; Cloudflare verified-destination option | Keep normal mail hosting and actual recipient choice separate from outbound sending. Existing MX records must be reviewed before Email Routing. |
-| No template privacy policy or client media | Controller, providers, rights, retention, copy and legal requirements differ by client. |
+| Working privacy and cookie policy templates; no published legal pages or client media | The templates prompt for the actual controller, providers, rights, retention and device technologies. Client review and approval remain necessary. |
 | No Docker or unit-test suite by default | A small static starter needs local build/type checks and targeted hosted acceptance, not mirrored tests. |

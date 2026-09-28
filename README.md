@@ -38,7 +38,7 @@ npm run build
 4. Configure a Cloudflare Pages review site before connecting your domain.
 5. Set up and test the contact form before making it visible to visitors.
 
-The demo page is marked `noindex`. Remove that setting only when the real site is ready to be found by search engines. This template does not include client assets or a ready-to-publish privacy policy.
+The demo page is marked `noindex`. Remove that setting only when the real site is ready to be found by search engines. This template does not include client assets or ready-to-publish legal pages. The [privacy policy](docs/templates/privacy-policy.md) and [cookie policy](docs/templates/cookie-policy.md) are working templates that require a client-specific review.
 
 ## Guides
 

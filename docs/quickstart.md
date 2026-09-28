@@ -2,7 +2,7 @@
 
 This guide covers the technical setup behind the [starter overview](../README.md). Astro builds static HTML, Sanity supplies approved public editorial text at build time, and a Cloudflare Pages Function handles contact submissions. React is installed for interactive islands when a particular design needs one; this demo page does not hydrate React.
 
-The page in this repository is **demonstration content**, not client copy or a design to publish. There are no client accounts, assets, domains, credentials, or legal pages in the template.
+The page in this repository is **demonstration content**, not client copy or a design to publish. There are no client accounts, assets, domains, credentials, or published legal pages in the template. Working [privacy](templates/privacy-policy.md) and [cookie](templates/cookie-policy.md) policy templates live in `docs/templates/`; they need client-specific facts, deployment checks and approval before being placed on a public site.
 
 ## Local start
 
