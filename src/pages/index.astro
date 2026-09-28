@@ -1,0 +1,106 @@
+---
+import { getHomeContent } from '../lib/content';
+
+const content = await getHomeContent();
+const siteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
+const formReady = import.meta.env.PUBLIC_CONTACT_FORM_READY === '1' && Boolean(siteKey);
+const publicEmail = import.meta.env.PUBLIC_CONTACT_EMAIL;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Neutral demonstration page for an Astro, Sanity, and Cloudflare Pages website starter." />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{content.title} — Website starter</title>
+    {formReady && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+  </head>
+  <body>
+    <header class="wrap"><a href="#main" class="skip">Skip to content</a><span class="eyebrow">Website starter / demonstration</span></header>
+    <main id="main" class="wrap">
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">{content.source === 'demo' ? 'Local demo content' : 'Sanity published content'}</p>
+        <h1 id="page-title">{content.title}</h1>
+        <p class="lead">{content.intro}</p>
+      </section>
+      <section class="panel" aria-labelledby="details-title">
+        <p class="eyebrow">01 / Editorial</p>
+        <h2 id="details-title">{content.detailsTitle}</h2>
+        <p>{content.details}</p>
+      </section>
+      <section class="contact" aria-labelledby="contact-title">
+        <p class="eyebrow">02 / Contact example</p>
+        <h2 id="contact-title">A contact form for each site</h2>
+        <p>Choose a real recipient, sender and privacy wording for the client. The demonstration form is disabled until hosted delivery has been tested.</p>
+        {publicEmail && <p><a href={`mailto:${publicEmail}`}>Email the team directly</a></p>}
+        <form id="contact-form" action="/api/contact" method="post" aria-describedby="form-status">
+          <div class="fields">
+            <label>Name <input name="name" autocomplete="name" required minlength="2" maxlength="100" disabled={!formReady} /></label>
+            <label>Email <input name="email" type="email" autocomplete="email" required maxlength="200" disabled={!formReady} /></label>
+          </div>
+          <label>Message <textarea name="message" required minlength="10" maxlength="5000" rows="6" disabled={!formReady}></textarea></label>
+          <div class="trap" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off" /></label></div>
+          {formReady && <div class="cf-turnstile" data-sitekey={siteKey}></div>}
+          <button type="submit" disabled={!formReady}>Send message</button>
+          <p id="form-status" role="status" aria-live="polite">{formReady ? '' : 'Form disabled until client delivery is verified.'}</p>
+        </form>
+      </section>
+    </main>
+    <footer class="wrap"><small>Demonstration only. Replace content, design, legal text and configuration for each client.</small></footer>
+    <script>
+      const form = document.querySelector<HTMLFormElement>('#contact-form');
+      const status = document.querySelector<HTMLElement>('#form-status');
+      form?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!status || !form || !form.reportValidity()) return;
+        const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+        if (button) button.disabled = true;
+        status.textContent = 'Sending…';
+        try {
+          const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+          const result = await response.json() as { ok?: boolean; mode?: string };
+          if (!response.ok || result.ok !== true) throw new Error('Delivery was not accepted');
+          form.reset();
+          status.textContent = result.mode === 'local_mock'
+            ? 'Local simulation complete. No email was sent.'
+            : 'The sending service accepted your message.';
+        } catch {
+          status.textContent = 'The message could not be sent. Please try again later or use the direct email link.';
+        } finally {
+          if (button) button.disabled = false;
+          if ('turnstile' in window) (window as Window & { turnstile?: { reset: () => void } }).turnstile?.reset();
+        }
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(*) { box-sizing: border-box; }
+  :global(html) { scroll-behavior: smooth; }
+  :global(body) { margin: 0; background: #f5f4f0; color: #1b2725; font: 18px/1.55 system-ui, sans-serif; }
+  :global(a) { color: inherit; text-underline-offset: .2em; }
+  :global(:focus-visible) { outline: 3px solid #c35d34; outline-offset: 4px; }
+  .wrap { width: min(100% - 2.5rem, 980px); margin-inline: auto; }
+  header { padding-block: 1.8rem; }
+  .skip { position: absolute; left: -9999px; }
+  .skip:focus { left: 1rem; top: 1rem; background: white; padding: .6rem; z-index: 2; }
+  .eyebrow { font-size: .74rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+  h1, h2 { line-height: 1.05; letter-spacing: -.045em; font-weight: 600; }
+  h1 { max-width: 12ch; font-size: clamp(3.4rem, 9vw, 7.4rem); margin: 1.2rem 0; }
+  h2 { font-size: clamp(2rem, 5vw, 3.5rem); margin: .9rem 0; }
+  .hero { padding-block: clamp(4rem, 10vw, 9rem); }
+  .lead { max-width: 42rem; font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+  .panel { background: #dce8de; padding: clamp(2rem, 5vw, 4rem); border-radius: 1.5rem; }
+  .panel p:last-child, .contact > p { max-width: 40rem; }
+  .contact { padding-block: 6rem; }
+  form { max-width: 40rem; display: grid; gap: 1rem; margin-top: 2rem; }
+  .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1rem; }
+  label { display: grid; gap: .35rem; font-size: .9rem; font-weight: 600; }
+  input, textarea { width: 100%; padding: .75rem; border: 1px solid #879a90; border-radius: .4rem; font: inherit; background: white; }
+  button { justify-self: start; border: 0; border-radius: 99px; background: #1b2725; color: white; padding: .8rem 1.5rem; font: inherit; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .trap { position: absolute; left: -9999px; }
+  footer { border-top: 1px solid #b8c7bc; padding-block: 2rem; }
+</style>

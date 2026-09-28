@@ -1,0 +1,32 @@
+{
+  "name": "astro-sanity-cloudflare-starter",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "studio"
+  ],
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check && tsc --noEmit -p tsconfig.functions.json && tsc --noEmit -p studio/tsconfig.json",
+    "dev:pages": "wrangler pages dev dist",
+    "studio:dev": "npm run dev -w studio",
+    "studio:build": "npm run build -w studio"
+  },
+  "dependencies": {
+    "@astrojs/react": "^7.0.0",
+    "@sanity/client": "^8.7.0",
+    "astro": "^7.3.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.0",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0",
+    "wrangler": "^4.142.0"
+  }
+}
