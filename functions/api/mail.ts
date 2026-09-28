@@ -13,15 +13,22 @@ export interface MailProvider {
   send(message: ContactMessage): Promise<boolean>;
 }
 
-const address = (value: string | undefined): value is string =>
+const address = (value: string | undefined): boolean =>
   Boolean(value && value.length <= 254 && /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(value));
+
+const resendSender = (value: string | undefined): boolean => {
+  if (address(value)) return true;
+  if (!value || value.length > 320) return false;
+  const match = /^([^\r\n<>]{1,100}) <([^<>]+)>$/.exec(value);
+  return Boolean(match && match[1].trim() && address(match[2]));
+};
 
 function plainText(data: ContactMessage): string {
   return `New website enquiry\n\nName: ${data.name}\nEmail: ${data.email}\n\n${data.message}`;
 }
 
 function resend(env: MailEnv): MailProvider | null {
-  if (!env.RESEND_API_KEY || !address(env.CONTACT_RECIPIENT) || !address(env.CONTACT_SENDER)) return null;
+  if (!env.RESEND_API_KEY || !address(env.CONTACT_RECIPIENT) || !resendSender(env.CONTACT_SENDER)) return null;
   return {
     async send(data) {
       const reply = await fetch('https://api.resend.com/emails', {

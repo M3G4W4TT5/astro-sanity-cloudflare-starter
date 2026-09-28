@@ -13,23 +13,24 @@ Copy this checklist into the **client's private working notes** and fill in owne
 
 - [ ] Generate an independent GitHub repository using **Use this template**. Record its URL and visibility; review files before public push. Template updates will not auto-merge later.
 - [ ] Replace demo content/design, metadata and `noindex` with approved site-specific work. Add only necessary pages, schema fields and React islands.
-- [ ] Create the client Sanity project and intended public dataset. Confirm plan, membership and visibility. Set `PUBLIC_SANITY_PROJECT_ID`, `PUBLIC_SANITY_DATASET`, Studio equivalents and `SITE_URL` without write tokens in the build.
-- [ ] Publish a valid `homePage` document with ID `home`; `npm ci`, `npm run check`, `npm run build`. Verify the built HTML contains approved Sanity content, not demo copy.
-- [ ] Set up named Studio editors and trusted publishing practice. Review raw public document fields and asset URLs for unintended exposure.
+- [ ] Follow [Sanity project and Studio](quickstart.md#sanity-project-and-studio): create the client project and public dataset, record ownership, and set matching site and Studio IDs without write tokens in the build.
+- [ ] Publish a valid `homePage` document with ID `home`; run `npm ci`, `npm run check`, `npm run build`, and verify the built HTML contains approved Sanity content rather than demo copy.
+- [ ] Deploy/configure the client's Studio, invite named editors, verify their access and review raw public document fields and asset URLs for unintended exposure.
 
 ## Pages and content deployment
 
-- [ ] Create the client's Pages project connected to its GitHub `main`. Set Node 24, build command `npm run build`, output `dist`, and project-specific build variables. Verify `functions/` is deployed.
+- [ ] Follow [Cloudflare Pages setup](quickstart.md#cloudflare-pages-setup): connect only the intended GitHub repository, select `main`, set Node 24, build command `npm run build`, output `dist`, and separate production/preview variables. Inspect the first build log and deployed commit; verify `functions/` is deployed.
 - [ ] Review the generated `*.pages.dev` hostname. Keep launch DNS untouched until approved.
-- [ ] Create a **production** Pages deploy hook. Put its URL only in the Sanity webhook configuration; configure the intended dataset, POST, published create/update/delete, drafts/versions excluded.
-- [ ] Publish a harmless edit. Check Sanity webhook attempts, Pages deployment success and the changed live page. Test unpublish/delete behaviour too.
-- [ ] Configure Pages project updates alert for the client project, **Production → Deployment failed**, to a monitored inbox. Use the alert test and confirm email receipt.
+- [ ] Follow [Sanity publish to Pages](quickstart.md#sanity-publish-to-pages): create a **production** Pages deploy hook and configure the Sanity webhook for the intended dataset, `POST`, published create/update/delete, drafts/versions excluded. Keep the hook URL secret.
+- [ ] Publish a harmless edit. Record the Sanity attempt, matching successful Pages deployment and changed live page. Define the intended unpublish/delete behavior before testing it; the starter's required `home` document makes an unpublish build fail.
+- [ ] Follow [Production deployment failure alert](quickstart.md#production-deployment-failure-alert): filter the Pages project update alert to this project, **Production → Deployment failed**, and confirm its test email reaches the monitored inbox.
 
 ## Contact and launch
 
-- [ ] Choose recipient inbox and fixed authenticated sender. Default: Resend Free; optional: Cloudflare sending to a verified destination. Verify sending domain and current pricing/limits. Do not alter existing mail MX records casually.
-- [ ] Set Turnstile site key for review and final hostnames, server secret, provider credentials and `CONTACT_FORM_ENABLED=1` in hosted Pages. Keep `PUBLIC_CONTACT_FORM_READY=0` for now.
-- [ ] Submit directly to the hosted endpoint, confirm provider acceptance, actual inbox receipt and Reply-To. Test bad fields, bad Turnstile token and provider failure. Then set `PUBLIC_CONTACT_FORM_READY=1`, rebuild and test the visible form.
+- [ ] Choose recipient inbox and fixed authenticated sender. Default: Resend Free; optional: Cloudflare sending to a verified destination. Verify sending domain and current pricing/limits. Do not alter existing mail MX records casually. Follow the [Resend setup and delivery check](quickstart.md#resend-setup-and-delivery-check) when using Resend.
+- [ ] For a Resend review test, record the owner and recovery access for any approved temporary inbox/account. Create a site-named Sending access API key; set the review Pages `RESEND_API_KEY`, `CONTACT_RECIPIENT`, `CONTACT_SENDER`, `CONTACT_PROVIDER=resend`, `CONTACT_FORM_ENABLED=1` and Turnstile settings. Redeploy after changing bindings. Keep production `PUBLIC_CONTACT_FORM_READY=0`.
+- [ ] Enable the form only on the review deployment and submit a hosted enquiry with Turnstile. Confirm Resend **Delivered**, actual inbox receipt and Reply-To. Test bad fields, bad Turnstile token and failure messaging. If the test fails, disable the review form while correcting it.
+- [ ] Verify the final Resend sending domain and fixed sender, replace the temporary recipient with the approved business inbox, check any API key domain restriction and retest on review. Set production bindings and redeploy. After launch approval, enable `PUBLIC_CONTACT_FORM_READY=1` in production, rebuild and confirm delivery and Reply-To on the live hostname.
 - [ ] Obtain client-reviewed legal/privacy content for actual collection and providers; record retention and handling. No template policy is publishable as-is.
 - [ ] Review accessibility, mobile layout, links, SEO/indexing, content and analytics/cookies if added. Get approval for the domain/DNS switch; connect the client domain and verify HTTPS, canonical URL, live pages and contact delivery there.
 - [ ] Complete [operations handoff](operations-handoff.md).
