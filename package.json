@@ -10,7 +10,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check && tsc --noEmit -p tsconfig.functions.json && tsc --noEmit -p studio/tsconfig.json",
-    "dev:pages": "wrangler pages dev dist",
+    "dev:pages": "wrangler pages dev dist --compatibility-date=2026-09-28",
     "studio:dev": "npm run dev -w studio",
     "studio:build": "npm run build -w studio"
   },
