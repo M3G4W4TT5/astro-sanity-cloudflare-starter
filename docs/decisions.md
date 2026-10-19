@@ -1,15 +1,20 @@
 # Starter decisions
 
-Recorded 28 September 2026. These are template defaults, not client approvals.
+Updated 19 October 2026. These are template defaults, not client approvals.
 
 | Decision | Reason and boundary |
 | --- | --- |
-| Public GitHub template; independent generated repositories | Reuse setup without coupling client histories. No automatic downstream updates. |
-| Astro static + TypeScript; React integration available | Content-first output and optional interactive islands; no persistent site server. |
-| Minimal Sanity `homePage` model | Proves editable published content without imposing a universal page builder. Expand only for an approved brief. |
-| Local labelled demo with fail-closed configured CMS | No account needed to start; a configured missing document must fail the build rather than publish placeholder copy. |
-| Git-connected Cloudflare Pages and generated `pages.dev` review hostname | Static builds and isolated review before a client domain change. Publish webhook requests another build; live verification remains required. |
-| Pages Function + Turnstile + provider interface | Server validation and replaceable sending; contact form stays disabled pending hosted inbox proof. |
-| Resend Free default; Cloudflare verified-destination option | Keep normal mail hosting and actual recipient choice separate from outbound sending. Existing MX records must be reviewed before Email Routing. |
-| Working privacy and cookie policy templates; no published legal pages or client media | The templates prompt for the actual controller, providers, rights, retention and device technologies. Client review and approval remain necessary. |
-| No Docker or unit-test suite by default | A small static starter needs local build/type checks and targeted hosted acceptance, not mirrored tests. |
+| Independent client repositories | Reuse infrastructure without coupling client histories. Later template updates do not automatically reach client sites. |
+| Static Astro + TypeScript; React available | Fast static output with hydration only for interactions that need it. No mandatory SSR or visual framework. |
+| Disposable demonstration page | Each client gets a separate design and content model. Shared metadata and contact behavior live in reusable components. |
+| Phase-aware `AGENTS.md` and `PROJECT.md` | Setup is recorded once; later sessions prioritize the actual design brief. Launch decisions do not block independent implementation. |
+| `demo`, `review`, `live` build modes | Account-free demo; configured modes require CMS and a real HTTPS origin. Review and branch previews stay unindexed. |
+| Sanity build-time published content | No CMS request per visitor and no site read token for public datasets. A configured missing/invalid `home` document fails the build. Keep the pinned API date until an API change is needed. |
+| Native Sanity singleton for Home | One clear editor entry, no duplicate creation, and no ordinary unpublish/delete action for the document required by the build. UI guards do not restrict direct API access. |
+| Workers Static Assets + a small API Worker | Follow Cloudflare's current platform direction while keeping static pages off Worker execution. No Astro server adapter needed. |
+| Separate review Worker | Stable review hostname and separate runtime secrets. Keep untrusted branches away from live mail credentials. |
+| Turnstile + replaceable mail adapters | Preserve bounded validation and a fixed authenticated sender. Resend is the default; Cloudflare verified-destination sending remains optional. |
+| Sending disabled until hosted inbox proof | API acceptance is not proof of delivery. Localhost always simulates. Sending providers do not provision a business inbox. |
+| Working legal templates | Client facts and deployed behavior determine the final policies. No generic policies are published by default. |
+| Analytics deferred | No preferred provider, SDK, script or visitor tracking is installed. Revisit when the user selects a solution. |
+| Small regression suite and CI | Verify deployment-mode boundaries, API routing and mail acceptance without real accounts. Hosted acceptance remains necessary. |

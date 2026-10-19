@@ -7,12 +7,13 @@ export default defineConfig({
   title: 'Website content',
   projectId: process.env.SANITY_STUDIO_PROJECT_ID || 'missing',
   dataset: process.env.SANITY_STUDIO_DATASET || 'production',
-  plugins: [structureTool({
-    structure: (S) => S.list().title('Content').items([
-      S.listItem().title('Home page').id('home').child(
-        S.document().schemaType('homePage').documentId('home')
-      ),
-    ]),
-  })],
+  plugins: [structureTool()],
+  document: {
+    singletons: [{ documentId: 'home', schemaType: 'homePage', title: 'Home page' }],
+    // Home is required by the build. This is an editor guard, not API authorization.
+    actions: (actions, context) => context.documentId === 'home'
+      ? actions.filter(({ action }) => action !== 'delete' && action !== 'unpublish')
+      : actions,
+  },
   schema: { types: [homePage] },
 });

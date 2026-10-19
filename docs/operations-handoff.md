@@ -1,15 +1,19 @@
 # Operations and handoff checklist
 
-For each client, record the answers in a restricted handoff document. Do not put credentials or contact messages in this repository.
+Record detailed answers in a restricted client handoff document. Put only non-sensitive completion status and public URLs in `PROJECT.md`.
 
-- [ ] List named owners and backup admins for GitHub, Sanity, Cloudflare Pages, domain/DNS, mail inbox, sender service and Turnstile. Record who can approve publication and who monitors failures.
-- [ ] Record client repository URL, branch, Pages project/review/live URLs, Studio URL, dataset and domain registrar. Store secret **locations** and rotation owners, never secret values.
-- [ ] Record Pages build settings (`npm run build`, `dist`, Node 24), environment variable names, production/preview split, custom domain and DNS records. Verify current MX records and mail flow after any DNS change.
-- [ ] Record Sanity webhook location, dataset/filter/trigger types, associated Pages deploy hook and how to inspect attempt logs. Keep the hook URL secret. Document how to manually request a fresh build if a webhook fails.
-- [ ] Record Pages deployment-failed alert configuration and prove its test email reached the monitored inbox. Review failed builds promptly; an older successful deployment can stay live after a failed build.
-- [ ] Record last published CMS test edit, Sanity revision/time, matching successful Pages deployment and the observed live URL/content. A webhook 2xx alone is insufficient.
-- [ ] Record contact recipient, verified sender, provider, Turnstile allowed hostnames, successful hosted submission time, inbox receipt and Reply-To check. Success from the sending API means acceptance, not final delivery.
-- [ ] Record privacy/legal owner, data handling and retention, provider agreements if needed, asset rights/credits, renewal/cost limits and what to do when an enquiry or provider fails.
-- [ ] Export/back up published Sanity documents and selected approved media; keep source evidence separately. Rehearse restoring one page and one image. Git history alone does not back up CMS content.
-- [ ] Explain editorial workflow: review private evidence, edit draft, approve, publish, observe webhook/build, verify live page. Explain unpublish, rollback and stale Pages deployment handling.
-- [ ] Transfer access and document an incident contact path. Keep template and client repos separate; template updates do not reach generated repos automatically.
+- [ ] Name owners and backup administrators for GitHub, Sanity, Cloudflare Workers, domain/DNS, mail inbox, sending provider and Turnstile. Record who monitors failures and handles incidents.
+- [ ] Record repository URL, starter revision, production/review branches, both Worker names/URLs, Studio URL, dataset and registrar. Record actual Sanity roles, including Free's broad admin access for editing users.
+- [ ] Record Node 24/npm 11, `npm run build`, Wrangler deploy commands, `dist` assets, runtime switches and generated-type commands. Keep build-time values separate from runtime secrets. Store secret locations and rotation owners, never values.
+- [ ] Record deployment modes, production branch and canonical origins. Verify review and branch preview noindex, and approved live indexing. Record any review access restrictions separately.
+- [ ] Record each Sanity webhook's location, dataset/filter/triggers and associated review/live deploy hook. Keep hook URLs secret. Explain manual rebuild and how to inspect Sanity Attempts and Worker build logs.
+- [ ] Prove an identifiable CMS edit reached the live page: Sanity revision/time, matching successful Worker deployment and observed URL/text. A hook 2xx alone is insufficient.
+- [ ] Record and test the build-failure notification path and monitored inbox, including a failed CMS-triggered build. The Pages project-update alert is not a Workers alert. Record how to notice a webhook that never starts a build.
+- [ ] Explain that failed builds can leave an older version live. Document rebuild, rollback and CMS restoration; code rollback alone does not restore CMS content.
+- [ ] Record contact recipient, fixed verified sender, provider, separate review/live secret locations and Turnstile allowed hostnames. Prove hosted inbox delivery and Reply-To on the live domain. API success means acceptance, not guaranteed delivery.
+- [ ] Record custom domain/DNS and confirm existing MX records and mail flow after changes. List renewals, current free-tier limits, spending decisions and account recovery arrangements privately.
+- [ ] Record privacy/legal owner, actual log retention, provider agreements, asset rights and analytics decision. No analytics provider is installed by this template.
+- [ ] Export/back up Sanity documents and approved media separately from Git. Rehearse restoring a page and image. Keep private source evidence separate from public assets.
+- [ ] Explain the editorial workflow: draft, review, publish, observe build, verify live. Required Home has no ordinary unpublish/delete action; API operations still require care.
+- [ ] Transfer access and document an incident contact path. Generated client repos are independent; apply future maintenance through reviewed client pull requests without rerunning setup.
+- [ ] Set `PROJECT.md` phase to `handoff` with the non-sensitive status and next owner/task.

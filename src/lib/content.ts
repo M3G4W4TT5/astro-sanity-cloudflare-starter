@@ -1,4 +1,5 @@
 import { createClient } from '@sanity/client';
+import { site } from './site';
 
 export type HomeContent = {
   title: string;
@@ -17,21 +18,25 @@ const demo: HomeContent = {
 };
 
 export async function getHomeContent(): Promise<HomeContent> {
-  const projectId = import.meta.env.PUBLIC_SANITY_PROJECT_ID;
+  const projectId = site.projectId;
   if (!projectId) return demo;
 
   const client = createClient({
     projectId,
-    dataset: import.meta.env.PUBLIC_SANITY_DATASET || 'production',
+    dataset: site.dataset,
     apiVersion: '2025-05-01',
     perspective: 'published',
     useCdn: false,
   });
-  const page = await client.fetch<Omit<HomeContent, 'source'> | null>(
+  const page = await client.fetch<unknown>(
     '*[_type == "homePage" && _id == "home"][0]{title, intro, detailsTitle, details}',
   );
-  if (!page?.title || !page.intro || !page.detailsTitle || !page.details) {
+  if (!page || typeof page !== 'object'
+    || !('title' in page) || typeof page.title !== 'string' || !page.title.trim()
+    || !('intro' in page) || typeof page.intro !== 'string' || !page.intro.trim()
+    || !('detailsTitle' in page) || typeof page.detailsTitle !== 'string' || !page.detailsTitle.trim()
+    || !('details' in page) || typeof page.details !== 'string' || !page.details.trim()) {
     throw new Error('Published Sanity home document is missing required content. Publish document ID "home" before building.');
   }
-  return { ...page, source: 'sanity' };
+  return { title: page.title, intro: page.intro, detailsTitle: page.detailsTitle, details: page.details, source: 'sanity' };
 }

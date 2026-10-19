@@ -1,11 +1,4 @@
-import { createMailProvider, type ContactMessage, type MailEnv } from './mail';
-
-type Env = MailEnv & {
-  CONTACT_FORM_ENABLED?: string;
-  CONTACT_DEV_MODE?: string;
-  TURNSTILE_SECRET_KEY?: string;
-};
-type Context = { request: Request; env: Env };
+import { createMailProvider, type ContactMessage } from './mail.ts';
 
 const json = (status: number, body: { ok: boolean; error?: string; mode?: string }) =>
   new Response(JSON.stringify(body), {
@@ -59,7 +52,7 @@ async function verifyTurnstile(token: string, secret: string, request: Request, 
   return result.success === true && result.hostname === hostname;
 }
 
-export async function onRequestPost({ request, env }: Context): Promise<Response> {
+export async function handleContact(request: Request, env: WorkerEnv): Promise<Response> {
   const url = new URL(request.url);
   const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
   const origin = request.headers.get('Origin');

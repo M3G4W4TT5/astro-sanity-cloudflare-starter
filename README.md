@@ -1,48 +1,48 @@
-# Astro + Sanity + Cloudflare Pages starter
+# Astro + Sanity + Cloudflare Workers starter
 
-A public template for building small, content-focused websites. It gives you a working local demo and a starting point for a site with editable content and a contact form.
+A design-neutral template for small client websites: static Astro, React when needed, Sanity content fetched at build time, and Cloudflare Workers Static Assets with a protected contact endpoint.
 
-The demo is intentionally generic. Each site made from this template needs its own design, approved content, accounts, and launch decisions.
-
-## What’s included
-
-- **Astro** for a fast, static website
-- **Sanity** for content editors, with content added during each build
-- **Cloudflare Pages** for hosting and a server-side contact endpoint
-- **Turnstile** for form verification and **Resend** as the default mail provider
-- **React support** when a design needs interactive components
-
-You can run the demo without creating any accounts. The contact form starts disabled and sends no real mail during local development.
+The demonstration page is disposable. Each generated repository gets its own design, content model, accounts and launch decisions.
 
 ## Try it locally
 
-You’ll need Node 24 and npm.
+Use Node 24 and npm 11. No accounts are needed for the demo.
 
 ```bash
 npm ci
 npm run dev
 ```
 
-Open [http://localhost:4321](http://localhost:4321). To check the project and make a production build, run:
+Open [localhost:4321](http://localhost:4321). Check the complete starter with:
 
 ```bash
 npm run check
+npm test
 npm run build
+npm run studio:build
+npm run worker:check
 ```
 
-## Make it your own
+For the full static site and local API, copy `.dev.vars.example` to `.dev.vars` and run `npm run dev:worker` on port 8787. Local mail is always simulated. Astro dev and preview serve the frontend only.
 
-1. Create a new repository using this template.
-2. Replace the demo design and text with content approved for your site.
-3. Set up your own Sanity project and connect it to the build.
-4. Configure a Cloudflare Pages review site before connecting your domain.
-5. Set up and test the contact form before making it visible to visitors.
+## Start a client site
 
-The demo page is marked `noindex`. Remove that setting only when the real site is ready to be found by search engines. This template does not include client assets or ready-to-publish legal pages. The [privacy policy](docs/templates/privacy-policy.md) and [cookie policy](docs/templates/cookie-policy.md) are working templates that require a client-specific review.
+1. Generate an independent repository using this template. Set the project kind and phase in [PROJECT.md](PROJECT.md).
+2. Follow the [quickstart](docs/quickstart.md) to connect client-owned Sanity and Workers review services.
+3. Record the successful CMS-to-review deployment and move to `design-implementation`. Fill [the design brief](docs/design-brief.md) and replace the demonstration page and styling.
+4. Complete the [launch checklist](docs/new-site-checklist.md), including real inbox delivery, policy review and the domain switch.
+5. Complete the [operations handoff](docs/operations-handoff.md).
 
-## Guides
+`AGENTS.md` uses the recorded project phase so later coding sessions continue design work without repeating account setup. Missing mail, legal or domain decisions do not block independent design implementation.
 
-- [Quickstart and configuration](docs/quickstart.md) — local setup, Sanity, Pages, webhooks, and contact form settings
-- [New site checklist](docs/new-site-checklist.md) — decisions and checks for a client project
-- [Operations handoff](docs/operations-handoff.md) — what to record before handing over a live site
-- [Starter decisions](docs/decisions.md) — why the template uses this setup
+## Reusable pieces
+
+- `src/layouts/BaseLayout.astro`: language, canonical URL, description, Open Graph and indexing.
+- `src/components/ContactForm.astro`: form markup and submission behavior, independent of the demonstration page.
+- `worker/`: bounded validation, Turnstile verification and replaceable Resend/Cloudflare mail adapters.
+- `wrangler.jsonc`: static assets, API routing, generated binding types and an isolated review environment.
+- GitHub Actions and grouped Dependabot updates: maintain the template before reusing it.
+
+`PUBLIC_SITE_MODE=demo|review|live` controls validated configuration and indexing. Only live mode permits indexing; branch previews stay unindexed. Analytics is undecided and no tracking provider is installed.
+
+See [configuration](docs/quickstart.md), [starter decisions](docs/decisions.md), [maintenance](docs/maintenance.md) and the working [policy templates](docs/templates/README.md). Existing Pages users should read the [migration notes](docs/migrate-from-pages.md).
