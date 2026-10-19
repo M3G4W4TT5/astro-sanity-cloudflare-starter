@@ -1,11 +1,7 @@
-export type MailEnv = {
-  CONTACT_PROVIDER?: string;
-  CONTACT_RECIPIENT?: string;
-  CONTACT_SENDER?: string;
-  RESEND_API_KEY?: string;
-  CF_EMAIL_ACCOUNT_ID?: string;
-  CF_EMAIL_API_TOKEN?: string;
-};
+export type MailEnv = Partial<Pick<WorkerEnv,
+  'CONTACT_PROVIDER' | 'CONTACT_RECIPIENT' | 'CONTACT_SENDER' | 'RESEND_API_KEY'
+  | 'CF_EMAIL_ACCOUNT_ID' | 'CF_EMAIL_API_TOKEN'
+>>;
 
 export type ContactMessage = { name: string; email: string; message: string };
 

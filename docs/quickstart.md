@@ -1,96 +1,125 @@
 # Quickstart and configuration
 
-This guide covers the technical setup behind the [starter overview](../README.md). Astro builds static HTML, Sanity supplies approved public editorial text at build time, and a Cloudflare Pages Function handles contact submissions. React is installed for interactive islands when a particular design needs one; this demo page does not hydrate React.
+Astro produces static HTML. Sanity supplies published editorial content during each build. Cloudflare Workers serves static assets directly and runs `worker/index.ts` for `/api/*`. The contact handler lives in `worker/contact.ts`; `worker/mail.ts` selects Resend or the optional Cloudflare adapter. No Astro server adapter is required.
 
-The page in this repository is **demonstration content**, not client copy or a design to publish. There are no client accounts, assets, domains, credentials, or published legal pages in the template. Working [privacy](templates/privacy-policy.md) and [cookie](templates/cookie-policy.md) policy templates live in `docs/templates/`; they need client-specific facts, deployment checks and approval before being placed on a public site.
+## Local development
 
-## Local start
-
-Requires Node 24 (pinned in `.mise.toml` and `.node-version`), npm, and no Docker.
+Use Node 24 and npm 11, pinned by the version files and package engines. Docker and service accounts are unnecessary for the demo.
 
 ```bash
-mise install       # if using mise
 npm ci
-npm run dev        # http://localhost:4321
+npm run dev
 npm run check
-npm run build      # static output in dist/
-npm run preview
+npm test
+npm run build
+npm run studio:build
+npm run worker:check
 ```
 
-The default build uses clearly labelled demo text and needs no account. Copy `.env.example` to `.env` only when configuring a client. When `PUBLIC_SANITY_PROJECT_ID` is set, `src/lib/content.ts` fetches the published `homePage` document with ID `home`. The build fails if that document or a required field is missing; it does not silently use demo text. The minimal schema lives in `studio/schemas/homePage.ts` and should evolve for the approved site's actual editorial needs.
+Astro dev is [localhost:4321](http://localhost:4321). `npm run preview` serves the built frontend only. For the complete local static site and API:
 
-### Sanity project and Studio
+```bash
+cp .dev.vars.example .dev.vars
+npm run dev:worker
+```
 
-1. In the client's durable Sanity account, create a project and a public dataset (the example configuration uses `production`). Record the project owner, dataset name and named editors in the client's private checklist. Review fields and assets before adding them: the public dataset is for publishable site content, not private evidence or contact messages.
-2. Copy `.env.example` to `.env` and set `PUBLIC_SANITY_PROJECT_ID` and `PUBLIC_SANITY_DATASET`. Copy `studio/.env.example` to `studio/.env` and set `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to the **same** project and dataset. These are public identifiers, not write tokens. Keep both local files out of Git.
-3. Adapt `studio/schemas/homePage.ts` to the approved content model. Run `npm run studio:dev`, open the Home page editor, fill its required fields and **Publish** the document. The starter's structure fixes its document ID at `home`; `src/lib/content.ts` queries that ID and type. If the schema or ID changes, update the query and webhook scope too.
-4. Run `npm run check` and `npm run build` from the repository root. Confirm `dist/index.html` contains the approved published heading and text. A missing published `home` document or required field deliberately fails the build. Draft edits will not appear because the build uses the published perspective.
-5. From `studio/`, run `npx sanity deploy` to choose a client-specific `*.sanity.studio` hostname, or configure another approved Studio host. Open the deployed Studio, confirm it connects to the intended dataset, invite the named editors in Sanity project management, and confirm they can access it. Keep Studio configuration free of tokens. See [Sanity Studio deployment](https://www.sanity.io/docs/studio/deployment).
+Worker dev builds Astro first, then serves [localhost:8787](http://localhost:8787). Rerun it after static-page changes; use Astro dev for frontend hot reload. The form starts disabled. To verify the API's account-free simulation:
 
-Sanity content is fetched during **build**, not in the visitor's browser. Every publish or unpublish needs a successful Pages rebuild before the website changes.
+```bash
+curl http://localhost:8787/api/contact \
+  -F 'name=Local test' \
+  -F 'email=visitor@example.invalid' \
+  -F 'message=This is a local simulation only.'
+```
 
-## Contact endpoint
+Expect `{"ok":true,"mode":"local_mock"}`. Localhost never sends mail, even when hosted credentials exist. Automated tests mock hosted verification and sending; they do not contact mail services.
 
-`functions/api/contact.ts` validates bounded form data and verifies Turnstile with Siteverify on hosted Pages. `functions/api/mail.ts` selects a replaceable provider: Resend by default, or Cloudflare Email Service for a verified destination. The sender is a fixed authenticated address from server configuration; the visitor is Reply-To. The endpoint returns success only after the sending API accepts the message. Acceptance is not proof of inbox arrival.
+## Deployment modes
 
-The public form starts disabled (`PUBLIC_CONTACT_FORM_READY=0`). A hosted endpoint also requires `CONTACT_FORM_ENABLED=1`, a Turnstile secret, and working mail settings. Use a review deployment with the form enabled to obtain a valid Turnstile token and test the hosted flow; keep production's public switch at `0` until the intended inbox receives the message and Reply-To works. If the review test fails, turn its form off again while correcting the setup. On localhost, the Function **never sends real mail**: `CONTACT_DEV_MODE=1` allows a labelled simulation. To exercise it, copy `.dev.vars.example` to `.dev.vars`, run `npm run build` and `npm run dev:pages`, then POST a valid multipart form to `http://localhost:8788/api/contact`. Astro's `npm run dev` serves the page only; it does not run Pages Functions.
+Copy `.env.example` to `.env` when configuring a client. `config/site.mjs` validates the same settings used by Astro configuration and page rendering.
+
+| Mode | Required configuration | Behavior |
+| --- | --- | --- |
+| `demo` (default) | None | Labelled demo when Sanity is unset; always `noindex`. Allows design work while external access is pending. |
+| `review` | Sanity project ID and real HTTPS `SITE_URL` | Published CMS content; always `noindex`. |
+| `live` | Same as review, with the approved live origin | Indexing allowed after launch approval. |
+
+Set `PUBLIC_SITE_MODE` explicitly in each hosted build. Setting a Sanity ID always activates CMS fetching, even in demo mode: a missing published `home` document or invalid required field fails the build. Review/live never fall back to demo content. Only missing CMS configuration in demo permits placeholders.
+
+Workers Builds sets `WORKERS_CI_BRANCH`. A branch different from `SITE_PRODUCTION_BRANCH` (default `main`) is rendered as review even if it inherits live settings. For local/manual preview builds without that metadata, explicitly set `PUBLIC_SITE_MODE=review`. Keep the review Worker configured as review even when its branch is `main`. `noindex` is indexing guidance, not access control; use Cloudflare Access or another agreed restriction for confidential review work.
+
+`BaseLayout.astro` supplies language, title, description, canonical URL, Open Graph and robots metadata. Reuse it in each client page and provide actual page-specific metadata. `ContactForm.astro` can move into the client's design; retain its behavior while replacing its styling. The default contact form ID is `contact-form`; provide unique IDs if rendering more than one.
+
+## Sanity project and Studio
+
+1. Create the project and public dataset in the client's durable Sanity account. Record public IDs in `PROJECT.md`, and private ownership/recovery details in the client's restricted operations record.
+2. Set root `.env` values `PUBLIC_SANITY_PROJECT_ID` and `PUBLIC_SANITY_DATASET`. Copy `studio/.env.example` to `studio/.env`; set matching `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET`. These are public identifiers, not write tokens.
+3. Run `npm run studio:dev`. Home is a native singleton with document ID `home` and schema type `homePage`. Fill and publish it. Adapt this small schema to actual editorial requirements during implementation, updating the query and webhook scope together.
+4. Run checks and build. Confirm `dist/index.html` contains the published text. The client uses the published perspective, `useCdn: false` and a pinned API date to fetch current published content at build time.
+5. From `studio/`, run `npx sanity deploy` to select a client-specific Studio hostname. Invite the agreed users and verify access in the deployed Studio.
+
+Sanity Free currently offers Administrator and Viewer roles, not the narrower Editor role. Editing users on Free therefore receive broad administrator privileges. Record that decision explicitly; use Growth when restricted editorial permissions are required. Public datasets are for publishable content, and uploaded assets may remain reachable by URL. Contact messages and private evidence do not belong there. See [pricing](https://www.sanity.io/pricing) and [Studio deployment](https://www.sanity.io/docs/studio/deployment).
+
+Native singletons prevent duplicate creation. Home's unpublish/delete actions are also hidden because it is required by the build. These Studio controls are not API authorization. Direct API deletion or invalid content still fails the next build; an earlier successful deployment can remain live. Decide a deliberate removal behavior when adding other content types.
 
 ## Configuration boundaries
 
-| Setting | Where it belongs | Meaning |
+| Setting | Location | Purpose |
 | --- | --- | --- |
-| `PUBLIC_SANITY_PROJECT_ID`, `PUBLIC_SANITY_DATASET`, `SITE_URL` | Client `.env` locally; Pages build variables | Public Sanity source and canonical URL. Set `SITE_URL` to the review hostname first, then the approved domain. |
-| `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET` | Client `studio/.env` locally; Studio deployment settings | Public project identifiers, never a write token. |
-| `PUBLIC_TURNSTILE_SITE_KEY`, `PUBLIC_CONTACT_FORM_READY`, `PUBLIC_CONTACT_EMAIL` | Client `.env` locally; Pages build variables | Public widget key, form display switch, optional direct email link. |
-| `CONTACT_FORM_ENABLED`, `CONTACT_PROVIDER`, `CONTACT_RECIPIENT`, `CONTACT_SENDER` | Pages Function environment variables | Server-only enable switch, `resend` or `cloudflare`, real inbox and fixed sender. Resend accepts an address or `Site Name <address>`; verify the sending domain before live use. Treat recipient as operational/private. |
-| `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY` | Pages encrypted secrets | Verification and default sending credentials. |
-| `CF_EMAIL_ACCOUNT_ID`, `CF_EMAIL_API_TOKEN` | Pages server configuration; token as encrypted secret | Only for the optional Cloudflare verified-destination adapter. |
-| Pages deploy hook URL | Sanity webhook URL field only | Secret trigger URL. Never put it in Git, Studio document fields, or browser code. |
+| `PUBLIC_SITE_MODE`, `PUBLIC_SITE_LANGUAGE`, `SITE_URL`, `SITE_PRODUCTION_BRANCH` | `.env` locally; Workers Builds variables | Mode, language, canonical origin and production branch. |
+| `PUBLIC_SANITY_PROJECT_ID`, `PUBLIC_SANITY_DATASET` | Site build variables | Public content source; no read token needed for a public dataset. |
+| `SANITY_STUDIO_PROJECT_ID`, `SANITY_STUDIO_DATASET` | `studio/.env`; Studio deployment settings | Same public project/dataset. |
+| `PUBLIC_CONTACT_FORM_READY`, `PUBLIC_TURNSTILE_SITE_KEY`, `PUBLIC_CONTACT_EMAIL` | Site build variables | Public form visibility, widget key and optional direct email link. |
+| `CONTACT_FORM_ENABLED`, `CONTACT_DEV_MODE`, `CONTACT_PROVIDER` | `wrangler.jsonc` `vars`, separately in `env.review.vars` | Runtime switches and provider. Hosted dev mode stays `0`. Keep sending disabled until the hosted test. |
+| `CONTACT_RECIPIENT`, `CONTACT_SENDER` | Worker secrets, separately for review and live | Actual inbox and fixed authenticated sender; Resend also accepts `Site Name <address>`. |
+| `TURNSTILE_SECRET_KEY`, `RESEND_API_KEY` | Worker secrets | Bot verification and default sending credentials. |
+| `CF_EMAIL_ACCOUNT_ID`, `CF_EMAIL_API_TOKEN` | Worker secrets, optional | Cloudflare verified-destination adapter only. |
+| Deploy-hook URL | Sanity webhook URL field / private secret store | Secret build trigger. Never commit it or put it in CMS content. |
 
-The root `.env.example`, `studio/.env.example`, and `.dev.vars.example` contain no live values. `.env`, `.dev.vars`, `dist`, and local Studio files are ignored. Never put private evidence, credentials, sensitive notes, uncleared images, or contact submissions in a public Sanity dataset or this public repository. Published Sanity documents are publicly queryable, and uploaded assets may remain reachable by URL.
+Build settings and Worker runtime secrets are separate. Adding a runtime secret does not rebuild static HTML. Changing a public build value requires a new Astro build and deployment. Configure switches in Wrangler, not only as dashboard variables that a later deployment could overwrite. Keep secrets out of `.env` examples and command arguments; use the dashboard secret controls or interactive `npx wrangler secret put NAME`, adding `--env review` for review secrets.
 
-## Cloudflare Pages setup
+`npm run worker:types` generates declarations from Wrangler and the public `.dev.vars.example`. Regenerate and commit `worker/env.d.ts` after changing bindings or variable names. `worker:check` checks those declarations and bundles without deploying.
 
-For **each generated client repository**:
+## Cloudflare Workers setup
 
-1. Push the reviewed client repository to its chosen GitHub owner. In the client's Cloudflare account, go to **Workers & Pages → Create application → Pages → Connect to Git**, authorize the intended repository and select it. Review the GitHub application's repository access before granting it. Choose `main` as the production branch; other branches can produce preview deployments. See [Pages Git integration](https://developers.cloudflare.com/pages/get-started/git-integration/).
-2. In the build setup, use the repository root, `npm run build` as the build command, and `dist` as the output directory. Keep `functions/` at that root so Pages deploys `/api/contact`. Node 24 is pinned in `.node-version`; set `NODE_VERSION=24` in Pages if an explicit build variable is needed, then confirm the version in the build log. Use `npm ci` for a custom install command only if the Pages setup offers one. See [Pages build image](https://developers.cloudflare.com/pages/configuration/build-image/).
-3. Set the build variables for the intended environment before deploying. Production should have `PUBLIC_SANITY_PROJECT_ID`, `PUBLIC_SANITY_DATASET` and `SITE_URL` for its current `*.pages.dev` review origin, plus `PUBLIC_CONTACT_FORM_READY=0`. Set `PUBLIC_TURNSTILE_SITE_KEY` only when configuring the form. Set preview values separately for the review branch and hostname. `SITE_URL` changes to the approved domain at launch. Server settings and encrypted secrets are listed in [configuration boundaries](#configuration-boundaries); never add secret values to Git. Do not give arbitrary preview code access to production mail secrets.
-4. Deploy and inspect the build log, deployed commit, generated hostname, page content and `/api/contact` route. The route must exist, but with sending disabled it should not accept mail. Confirm the site is still marked `noindex` during review. A `*.pages.dev` hostname and a successful build do not approve the client domain or content for launch.
+For a generated client repository:
 
-### Sanity publish to Pages
+1. Replace `name` and `env.review.name` in `wrangler.jsonc` with distinct client-specific Worker names. Keep static assets in `dist`, `run_worker_first: ["/api/*"]` and `not_found_handling: "404-page"`. Ordinary assets bypass Worker execution; unknown API paths return 404 and non-POST contact requests return 405.
+2. In the client's Cloudflare account, use **Workers & Pages → Create application** to connect the intended GitHub repository to a Worker. Match its name to the Wrangler name. Configure Node 24, repository root, build command `npm run build` and deploy command `npx wrangler deploy`. Inspect the install/build log and deployed commit. There is no Pages output-directory field to configure; Wrangler declares assets.
+3. Create/connect the review Worker with deploy command `npx wrangler deploy --env review`. It may track a trusted design branch or `main`. Configure its build variables with `PUBLIC_SITE_MODE=review`, matching Sanity IDs, a stable review `SITE_URL` and `PUBLIC_CONTACT_FORM_READY=0`. Each connected Worker has its own build settings.
+4. Use the generated `*.workers.dev` review hostname first. For manual setup/deployment, `npm run deploy -- --env review` builds and deploys review, using the build variables from your local `.env`/shell. Explicitly set review mode. Record the observed URL in `PROJECT.md` and verify the page, metadata and API route.
+5. Keep non-production branch builds disabled on the live Worker unless their credential exposure has been deliberately reviewed. Use the isolated review Worker for design branches and review mail secrets. Do not let arbitrary pull-request code use live mail credentials. Preview versions are not a substitute for runtime secret isolation.
+6. Add the live Worker and approved custom domain during the launch milestone. Use `PUBLIC_SITE_MODE=live`, the live `SITE_URL`, the correct production branch and separately configured runtime secrets. Inspect rendered robots/canonical metadata after deployment.
 
-1. In **Pages → client project → Settings → Builds**, add a deploy hook named for Sanity and select the production branch (`main` in this starter). Copy its generated URL directly into the client's Sanity webhook configuration. It is an unauthenticated trigger URL: keep it out of Git, chat, screenshots and public handoff notes. See [Pages deploy hooks](https://developers.cloudflare.com/pages/configuration/deploy-hooks/).
-2. In **Sanity project management → API → Webhooks**, create an enabled webhook for the same dataset. Set its URL to the Pages deploy hook, method to `POST`, and triggers to published **create, update and delete**. Leave draft and version triggers off. For the untouched starter, use the filter `_type == "homePage" && _id == "home"`; expand it when other published document types affect the site. Unpublishing fires the delete trigger. See [Sanity webhook settings](https://www.sanity.io/docs/content-lake/webhooks).
-3. Publish a harmless, identifiable edit in Studio. Inspect the webhook's **Attempts** log, the matching Pages deployment (its source should be the deploy hook), and the live page text. Record the edit, deployment and observed URL in the client's private handoff. Repeat for unpublish/delete where the site's intended behavior is defined; this starter's build deliberately fails if `home` is unpublished, so decide whether to block unpublishing or design an approved empty state before relying on that action.
+`npm run deploy` builds before deployment. Workers Builds already has a separate build step, so use `npx wrangler deploy` there. Do not upload `dist` alone: the Worker must accompany it for the contact API. See [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/), [Static Assets](https://developers.cloudflare.com/workers/static-assets/) and [configuration](https://developers.cloudflare.com/workers/wrangler/configuration/).
 
-| Symptom | Inspect next |
-| --- | --- |
-| No Pages build | Check the Sanity webhook's dataset, filter, triggers, enabled status and Attempts log; check the deploy hook URL and branch. |
-| Pages build failed | Read the build log. Check required published documents, Sanity identifiers and build variables; the prior successful deployment may still be live. |
-| Build succeeded but content looks old | Confirm the deployment used the intended branch/dataset, then inspect its URL and the visible page before checking the custom domain or cache. |
+## Sanity publish to Workers
 
-### Production deployment failure alert
+1. In the review Worker's **Settings → Builds → Deploy Hooks**, create a named hook for its intended branch. Copy the secret URL directly into a Sanity webhook for the intended dataset. Workers Builds supports CMS hooks; no custom rebuild relay is needed.
+2. Configure `POST`, published create/update/delete, with drafts and versions excluded. For the untouched starter, use `_type == "homePage" && _id == "home"`. Expand this filter as the client's content model grows.
+3. Publish an identifiable edit. Inspect Sanity's Attempts log, the matching successful Worker build/deployment and the changed review page. Record evidence without the hook URL. A successful hook HTTP request alone does not prove a deployed content change.
+4. At launch, configure a separate hook for the live Worker. Decide whether the review hook should stay enabled. A failed build leaves the earlier version live; publishing is not instantaneous.
 
-In the client's Cloudflare account, open **Manage account → Alerts → Add → Pages → Project updates**. Choose the client project, **Production** environment and **Deployment failed** event; send it to a monitored inbox. Save and enable the alert, use its **Test** action, and confirm receipt in that inbox. Record the alert location and owner in the private handoff. This alert catches failed Pages deployments; a Sanity webhook that never starts a build must be investigated in Sanity Attempts. See [Cloudflare Pages notifications](https://developers.cloudflare.com/notifications/notification-available/).
+See [Workers deploy hooks](https://developers.cloudflare.com/workers/ci-cd/builds/deploy-hooks/) and [Sanity webhooks](https://www.sanity.io/docs/content-lake/webhooks).
 
-Resend Free is the default sending choice; verify the client's sending domain and choose an actual recipient inbox separately. Cloudflare Email Service can send to an account-verified destination on the free path when the sending domain is configured in Cloudflare Email Service. Check the domain's current MX records first. Do not enable Email Routing over Google Workspace or another existing mail provider's MX records without an agreed mail migration. See the [new site checklist](new-site-checklist.md) and [operations handoff](operations-handoff.md) for the full sequence.
+## Build failure monitoring
 
-### Resend setup and delivery check
+Assign a monitored inbox and an owner who responds to failures. The old Pages project-update alert does not apply to Workers. Workers Builds supports `build.failed` events through [Event Subscriptions](https://developers.cloudflare.com/queues/event-subscriptions/) and a Queue consumer; route that event to the client's existing monitoring/email system or an explicitly configured notifier. This is an additional integration, not a notifier shipped by this starter. Record and test it before operations handoff, including a failed CMS-triggered build. GitHub checks show build status but do not replace a verified notification path for CMS-triggered failures. A webhook that never starts a build must still be investigated in Sanity Attempts.
 
-This is a per-client setup. The account and test recipient need named owners and recovery access. If a temporary mailbox is approved for review, use that mailbox for the Resend account and `CONTACT_RECIPIENT`; the `resend.dev` testing sender has recipient restrictions. Replace the temporary mailbox with the chosen business inbox before launch. Resend sends the enquiries but does not choose or provision that inbox.
+## Contact setup and hosted delivery
 
-1. Create the client-owned [Resend account](https://resend.com/). In **API Keys**, create a site-named key with **Sending access**. Keep the key out of chat, Git and screenshots. If the key is restricted to a domain, ensure its scope covers the test sender and later replace or update the key for the verified client domain. See [API key permissions](https://resend.com/changelog/new-api-key-permissions).
-2. The existing `functions/api/mail.ts` sends `POST https://api.resend.com/emails` with a fixed `from`, the chosen `to`, a text subject/body and the visitor's email in `reply_to`. Do not put the visitor's address in `from`.
-3. In **Cloudflare Pages → client project → Settings → Variables and Secrets**, configure the intended review environment. Add `RESEND_API_KEY` as an encrypted secret, `CONTACT_RECIPIENT` as the approved temporary inbox, and `CONTACT_SENDER` as `Site Name <onboarding@resend.dev>` for the initial test. The `resend.dev` sender is for limited testing, not launch. Set `CONTACT_PROVIDER=resend`, `CONTACT_FORM_ENABLED=1`, `TURNSTILE_SECRET_KEY` as an encrypted secret, and the review hostname's Turnstile site key. You may encrypt the recipient and sender values too. Keep production `PUBLIC_CONTACT_FORM_READY=0`. See [Pages secrets](https://developers.cloudflare.com/pages/functions/bindings/#secrets).
-4. Redeploy the review environment after setting bindings. Set its `PUBLIC_CONTACT_FORM_READY=1` build variable and rebuild so the hosted form and Turnstile widget appear. Check that the review hostname is allowed in Turnstile. Keep the live domain disconnected or its production form disabled during this test. See [Pages bindings](https://developers.cloudflare.com/pages/functions/bindings/).
-5. Submit one enquiry through the hosted review form. In **Resend → Emails**, check for **Delivered**, confirm receipt in the temporary inbox, and use Reply to verify the visitor address. An API success response by itself only means Resend accepted the request. Test invalid fields, an invalid Turnstile token and the form's failure message.
-6. For final delivery, verify the approved sending domain in **Resend → Domains**, set `CONTACT_SENDER` to a fixed address on that domain, and replace `CONTACT_RECIPIENT` with the approved business inbox. Check any domain-scoped API key. Repeat the hosted delivery and Reply-To test on the review deployment with these final settings. Configure the production bindings and redeploy; enable the production public form at the approved launch and confirm delivery again on the live hostname. Use the [domain verification guide](https://resend.com/blog/new-domain-verification-experience) and confirm current DNS instructions in Resend.
+Sending starts disabled in both Wrangler environments and the public build. First choose the existing business inbox and a fixed authenticated sender. Resend is an outbound sender, not a mailbox service.
 
-## Reference documentation
+1. Create/use the client-owned Resend account, verify the sending domain and create a site-named Sending-access API key. Store it as `RESEND_API_KEY` on the review Worker. Add `CONTACT_SENDER`, `CONTACT_RECIPIENT` and `TURNSTILE_SECRET_KEY` as separate secrets. A restricted key must cover the sender domain.
+2. Configure Turnstile's allowed hostname for the stable review Worker and set its public build key. The handler verifies both the token and returned hostname. A token for another hostname is rejected.
+3. For the hosted acceptance test, change only `env.review.vars.CONTACT_FORM_ENABLED` to `1`, and build review with `PUBLIC_CONTACT_FORM_READY=1`. Deploy the review environment and submit through its form. Keep live sending disabled while testing.
+4. Check Resend delivery status, actual inbox receipt and Reply-To. Test invalid fields, a bad Turnstile token and the failure message. The endpoint's success means provider acceptance, not inbox delivery. Disable the review form while correcting a failed test.
+5. Configure the final sender/recipient and separately add live secrets. Repeat the review test with the final mail settings. At approved launch enable the top-level runtime switch and live public form, rebuild/deploy and confirm live inbox receipt and Reply-To.
 
-- [Astro React integration](https://docs.astro.build/en/guides/integrations-guide/react/), [Astro on Pages](https://developers.cloudflare.com/pages/framework-guides/deploy-an-astro-site/), [Pages Functions](https://developers.cloudflare.com/pages/functions/)
-- [Sanity webhooks](https://www.sanity.io/docs/content-lake/webhooks), [dataset safety](https://www.sanity.io/docs/content-lake/keeping-your-data-safe), [pricing](https://www.sanity.io/pricing)
-- [Pages deploy hooks](https://developers.cloudflare.com/pages/configuration/deploy-hooks/), [Turnstile server validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/)
-- [Resend send API](https://resend.com/docs/api-reference/emails/send-email), [Resend pricing](https://resend.com/pricing)
-- [Cloudflare Email Service REST API](https://developers.cloudflare.com/email-service/api/send-emails/rest-api/), [pricing](https://developers.cloudflare.com/email-service/platform/pricing/), [limits](https://developers.cloudflare.com/email-service/platform/limits/)
+The `onboarding@resend.dev` sender is restricted testing infrastructure, not a launch sender. Use a verified client domain for final delivery. The optional Cloudflare adapter requires its configured sending domain and account-verified destination; confirm current plan requirements. Inspect existing MX records before any Email Routing change, particularly on Google Workspace or another mail host. Do not provision or replace an inbox without a client decision.
+
+See [Resend API](https://resend.com/docs/api-reference/emails/send-email), [Resend pricing](https://resend.com/pricing), [Turnstile validation](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/) and [Cloudflare Email Service](https://developers.cloudflare.com/email-service/).
+
+## Transition to design and launch
+
+After local checks/builds and a CMS edit reaching review are verified, update `PROJECT.md` to `design-implementation`. Work from `docs/design-brief.md`; keep setup evidence so later sessions do not repeat it. Pending access should be recorded as a blocker while independent design work continues in demo mode. Complete mail, final policy wording, live indexing, domain/DNS approval and handoff later using the linked checklists. Analytics remains undecided; this starter installs no tracking.
